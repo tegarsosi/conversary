@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "conversary"
+version = "0.1.0"
+description = "An AI powered journal for reflection and insight"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.11"
+tortoise-orm = "^0.24.2"
+asyncpg = "^0.30.0"
+pydantic = "^2.10.6"
+uvicorn = "^0.34.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
