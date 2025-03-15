@@ -47,7 +47,7 @@ class LLMService:
         if conversation_history:
             history = "\n".join([
                 f"User: {msg['user']}\nAI: {msg['ai']}"
-                for msg in conversation_history[-10:]
+                for msg in conversation_history[-5:]
             ])
 
         template = self.env.from_string(
@@ -62,6 +62,12 @@ class LLMService:
         outputs = self.model.generate(**inputs, max_new_tokens=100)
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
+        logger.debug(f"Raw Response: {response}")
+
+        if "<|im_sep|>" in response:
+            parts = response.split("<|im_sep|>")
+            response = parts[-1].strip()
+
         if response.startswith(prompt):
             response = response[len(prompt):].strip()
 
@@ -75,7 +81,10 @@ class LLMService:
         return: The AI-generated response
         """
         prompt = self.render(user_message, conversation_history)
+        logger.debug(f"Prompt: {prompt}")
+
         response = self.generate_response(prompt)
+        logger.debug(f"Cleaned Response: {response}")
         return response
 
 
@@ -86,9 +95,9 @@ async def test_llm():
     """Test function for the LLM service"""
     # Simulate a conversation
     messages = [
-        "My name is Johnson",
-        "I'm doing well, thank you. How are you?",
-        "What was my name again?"
+        "My name is Jack",
+        "My dog just died this morning. I'm not sure how to feel about it.",
+        "Please help me understand my feelings."
     ]
 
     for message in messages:
