@@ -1,6 +1,6 @@
 from tortoise import Tortoise
 
-DATABASE_URL = "sqlite://db.sqlite3"  # Change this for PostgreSQL
+DATABASE_URL = "sqlite://db.sqlite3"
 
 
 async def init_db():

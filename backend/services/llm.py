@@ -34,21 +34,25 @@ class LLMService:
         ).to(self.device)
 
         self.env = Environment(loader=BaseLoader())
-        self.conversation_history = []
         self._initialized = True
 
-    def render(self, user_message: str) -> str:
+    def render(self, user_message: str, conversation_history: list = None) -> str:
         """Render the user message with Jinja2
 
         param user_message: The message from the user
+        param conversation_history: The conversation history
         return: The rendered prompt
         """
-        history = "\n".join([f"User: {msg['user']}\nAI: {msg['ai']}"
-                            for msg in self.conversation_history])
+        history = ""
+        if conversation_history:
+            history = "\n".join([
+                f"User: {msg['user']}\nAI: {msg['ai']}"
+                for msg in conversation_history[-10:]
+            ])
 
         template = self.env.from_string(
             SYSTEM_PROMPT + "\n\n" +
-            "Previous conversation:\n" + history + "\n\n" +
+            ("Previous conversation:\n" + history + "\n\n" if history else "") +
             USER_PROMPT
         )
         return template.render(user_message=user_message)
@@ -63,20 +67,15 @@ class LLMService:
 
         return response
 
-    async def get_ai_response(self, user_message: str) -> str:
-        """Process a user message and maintain conversation history
+    async def get_ai_response(self, user_message: str, conversation_history: list = None) -> str:
+        """Process a user message with optional conversation history
 
         param user_message: The message from the user
+        param conversation_history: The conversation history
         return: The AI-generated response
         """
-        prompt = self.render(user_message=user_message)
+        prompt = self.render(user_message, conversation_history)
         response = self.generate_response(prompt)
-
-        self.conversation_history.append({
-            "user": user_message,
-            "ai": response
-        })
-
         return response
 
 
