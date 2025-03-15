@@ -23,7 +23,9 @@ class LLMService:
         if self._initialized:
             return
 
-        self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+        self.device = torch.device(
+            "mps" if torch.backends.mps.is_available() else "cpu"
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.MODEL_NAME,
@@ -32,11 +34,23 @@ class LLMService:
         ).to(self.device)
 
         self.env = Environment(loader=BaseLoader())
+        self.conversation_history = []
         self._initialized = True
 
     def render(self, user_message: str) -> str:
-        """Render the user message with Jinja2"""
-        template = self.env.from_string(SYSTEM_PROMPT + "\n\n" + USER_PROMPT)
+        """Render the user message with Jinja2
+
+        param user_message: The message from the user
+        return: The rendered prompt
+        """
+        history = "\n".join([f"User: {msg['user']}\nAI: {msg['ai']}"
+                            for msg in self.conversation_history])
+
+        template = self.env.from_string(
+            SYSTEM_PROMPT + "\n\n" +
+            "Previous conversation:\n" + history + "\n\n" +
+            USER_PROMPT
+        )
         return template.render(user_message=user_message)
 
     def generate_response(self, prompt: str) -> str:
@@ -50,8 +64,7 @@ class LLMService:
         return response
 
     async def get_ai_response(self, user_message: str) -> str:
-        """
-        Process a user message and return an AI-generated response.
+        """Process a user message and maintain conversation history
 
         param user_message: The message from the user
         return: The AI-generated response
@@ -59,23 +72,33 @@ class LLMService:
         prompt = self.render(user_message=user_message)
         response = self.generate_response(prompt)
 
+        self.conversation_history.append({
+            "user": user_message,
+            "ai": response
+        })
+
         return response
 
 
 llm_service = LLMService()
 
 
-async def test_llm(test_message: str):
+async def test_llm():
     """Test function for the LLM service"""
-    logger.info(f"User message: {test_message}")
-    logger.info("Generating response...")
-    response = await llm_service.get_ai_response(test_message)
-    logger.info(f"AI response: {response}")
+    # Simulate a conversation
+    messages = [
+        "My name is Johnson",
+        "I'm doing well, thank you. How are you?",
+        "What was my name again?"
+    ]
+
+    for message in messages:
+        logger.info(f"User message: {message}")
+        logger.info("Generating response...")
+        response = await llm_service.get_ai_response(message)
+        logger.info(f"AI response: {response}")
+        logger.info("-" * 50)
 
 
 if __name__ == "__main__":
-    asyncio.run(
-        test_llm(
-            "Do you know my name?"
-        )
-    )
+    asyncio.run(test_llm())
